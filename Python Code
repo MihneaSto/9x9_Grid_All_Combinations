@@ -1,0 +1,80 @@
+#Reasons for choosing Python
+#   1. combinations function from the itertools that allows for mapping all the possible combinations
+#   2. list within a list to have all the combinations in one place
+
+from itertools import combinations
+
+geo = hou.pwd().geometry()
+
+#all the prims in the geo
+prims = geo.prims()
+
+#get the color attribute from the primitive
+color_attrib = geo.findPrimAttrib("Cd")
+
+#get the nighbour attrib which was initialized before
+#this attribute stores all the neighbours of each primitve as primitive numbers
+neigh_attrib = geo.findPrimAttrib("neighbours")
+
+#################################################################
+#list with my prims
+elem = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+
+#all the possible combinations
+output = sum([map(list, combinations(elem, i)) for i in range(2, len(elem) + 1)], [])
+
+#################################################################
+#init check for combination validity
+check = 0
+
+#init list containing the viable results
+viableList = []
+
+#list containg all neighbours of already iterated over prims
+neighList = []
+
+#iterate over the possible combinations
+for comb in output:
+    
+    #get neighs of first prim
+    intList = (prims[comb[0]].attribValue(neigh_attrib)).split(" ")
+    intList = map(int, intList)
+    
+    neighList.extend(intList)
+    
+    #iterate over the prims in this combination
+    for j in range (1, len(comb)):      
+    
+        #if current prim is NOT in the neighbour list increment check to know that
+        #this combination is not "right"
+        if comb[j] in neighList:
+           
+            intList = (prims[comb[j]].attribValue(neigh_attrib)).split(" ")
+            intList = map(int, intList)
+            
+            neighList.extend(intList)
+            
+        else:
+            check = check + 1
+            break
+    
+    #mark combination as "good"
+    if (check == 0):
+        viableList.append(comb) 
+    else:
+        check = 0  
+
+    neighList[:] = []
+
+#################################################################
+#select the prim combination list based on frame
+selector = int(hou.frame())
+selList = viableList[selector]
+
+#################################################################
+#color prims that can be found in the list
+color = hou.Color(1,0,0)
+
+for i in selList:
+    prims[i].setAttribValue(color_attrib, color.rgb())
+#################################################################
